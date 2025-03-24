@@ -117,7 +117,15 @@ public abstract class AbstractGoCodegen extends DefaultCodegen implements Codege
         instantiationTypes.put("map", "GoMap");*/
 
         typeMapping.clear();
+        typeMapping.put("integer+int8", "int8");
+        typeMapping.put("integer+uint8", "uint8");
+        typeMapping.put("integer+int16", "int16");
+        typeMapping.put("integer+uint16", "uint16");
         typeMapping.put("integer", "int32");
+        typeMapping.put("integer+int32", "int32");
+        typeMapping.put("integer+int64", "int64");
+        typeMapping.put("integer+uint32", "uint32");
+        typeMapping.put("integer+uint64", "uint64");
         typeMapping.put("long", "int64");
         typeMapping.put("number", "float32");
         typeMapping.put("float", "float32");
