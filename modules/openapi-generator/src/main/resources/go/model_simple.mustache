@@ -1,5 +1,56 @@
+{{#hasEnums}}
+{{#vars}}
+{{#isEnum}}
+{{^-first}}
+{{/-first}}
+type {{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}} string
+{{/isEnum}}
+{{/vars}}
+{{/hasEnums}}
+
 // checks if the {{classname}} type satisfies the MappedNullable interface at compile time
 var _ MappedNullable = &{{classname}}{}
+
+{{#hasEnums}}
+const (
+{{#vars}}
+{{#isEnum}}
+{{^-first}}
+{{/-first}}
+{{#allowableValues}}
+{{#enumVars}}
+	{{#enumClassPrefix}}{{{classname}}}{{/enumClassPrefix}}{{nameInPascalCase}}{{#lambda.pascalcase}}{{#lambda.lowercase}}{{{name}}}{{/lambda.lowercase}}{{/lambda.pascalcase}} {{classname}}{{nameInPascalCase}} = {{{value}}}
+{{/enumVars}}
+{{/allowableValues}}
+{{/isEnum}}
+{{/vars}}
+)
+
+{{#vars}}
+{{#isEnum}}
+{{^-first}}
+{{/-first}}
+func (e {{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}) MarshalJSON() ([]byte, error) {
+	return json.Marshal(string(e))
+}
+
+func (e *{{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}) UnmarshalJSON(data []byte) error {
+	var enumStr string
+	if err := json.Unmarshal(data, &enumStr); err != nil {
+		return err
+	}
+
+	switch {{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}(enumStr) {
+	case {{#allowableValues}}{{#enumVars}}{{^-first}}, {{/-first}}{{#enumClassPrefix}}{{{classname}}}{{/enumClassPrefix}}{{nameInPascalCase}}{{#lambda.pascalcase}}{{#lambda.lowercase}}{{{name}}}{{/lambda.lowercase}}{{/lambda.pascalcase}}{{/enumVars}}{{/allowableValues}}:
+		*e = {{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}(enumStr)
+		return nil
+	default:
+		return errors.New("invalid {{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}} value")
+	}
+}
+{{/isEnum}}
+{{/vars}}
+{{/hasEnums}}
 
 // {{classname}} {{{description}}}{{^description}}struct for {{{classname}}}{{/description}}
 type {{classname}} struct {
@@ -20,7 +71,7 @@ type {{classname}} struct {
 {{#deprecated}}
 	// Deprecated
 {{/deprecated}}
-	{{name}} {{^required}}{{^isNullable}}{{^isArray}}{{^isFreeFormObject}}*{{/isFreeFormObject}}{{/isArray}}{{/isNullable}}{{/required}}{{{dataType}}}{{{vendorExtensions.x-go-datatag}}}
+	{{name}} {{^required}}{{^isNullable}}{{^isArray}}{{^isFreeFormObject}}*{{/isFreeFormObject}}{{/isArray}}{{/isNullable}}{{/required}}{{#isEnum}}{{classname}}{{nameInPascalCase}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}}{{{vendorExtensions.x-go-datatag}}}
 {{/vars}}
 {{#isAdditionalPropertiesTrue}}
 	AdditionalProperties map[string]interface{}
@@ -52,11 +103,11 @@ func New{{classname}}({{#requiredVars}}{{nameInCamelCase}} {{dataType}}{{^-last}
 {{^vendorExtensions.x-golang-is-container}}
 {{^isReadOnly}}
 {{#isNullable}}
-	var {{nameInCamelCase}} {{{datatypeWithEnum}}} = {{{.}}}
+	var {{nameInCamelCase}} {{#isEnum}}{{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}{{/isEnum}}{{^isEnum}}{{{datatypeWithEnum}}}{{/isEnum}} = {{{.}}}
 	this.{{name}} = *New{{{dataType}}}(&{{nameInCamelCase}})
 {{/isNullable}}
 {{^isNullable}}
-	var {{nameInCamelCase}} {{{dataType}}} = {{{.}}}
+	var {{nameInCamelCase}} {{#isEnum}}{{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}} = {{{.}}}
 	this.{{name}} = &{{nameInCamelCase}}
 {{/isNullable}}
 {{/isReadOnly}}
@@ -78,11 +129,11 @@ func New{{classname}}WithDefaults() *{{classname}} {
 {{^isReadOnly}}
 {{#isNullable}}
 {{!we use datatypeWithEnum here, since it will represent the non-nullable name of the datatype, e.g. int64 for NullableInt64}}
-	var {{nameInCamelCase}} {{{datatypeWithEnum}}} = {{{.}}}
+	var {{nameInCamelCase}} {{#isEnum}}{{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}{{/isEnum}}{{^isEnum}}{{{datatypeWithEnum}}}{{/isEnum}} = {{{.}}}
 	this.{{name}} = *New{{{dataType}}}(&{{nameInCamelCase}})
 {{/isNullable}}
 {{^isNullable}}
-	var {{nameInCamelCase}} {{{dataType}}} = {{{.}}}
+	var {{nameInCamelCase}} {{#isEnum}}{{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}} = {{{.}}}
 	this.{{name}} = {{^required}}&{{/required}}{{nameInCamelCase}}
 {{/isNullable}}
 {{/isReadOnly}}
@@ -101,9 +152,9 @@ func New{{classname}}WithDefaults() *{{classname}} {
 {{#deprecated}}
 // Deprecated
 {{/deprecated}}
-func (o *{{classname}}) Get{{name}}() {{vendorExtensions.x-go-base-type}} {
+func (o *{{classname}}) Get{{name}}() {{#isEnum}}{{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}{{/isEnum}}{{^isEnum}}{{vendorExtensions.x-go-base-type}}{{/isEnum}} {
 	if o == nil{{#isNullable}}{{^vendorExtensions.x-golang-is-container}} || o.{{name}}.Get() == nil{{/vendorExtensions.x-golang-is-container}}{{/isNullable}} {
-		var ret {{vendorExtensions.x-go-base-type}}
+		var ret {{#isEnum}}{{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}{{/isEnum}}{{^isEnum}}{{vendorExtensions.x-go-base-type}}{{/isEnum}}
 		return ret
 	}
 
@@ -128,13 +179,13 @@ func (o *{{classname}}) Get{{name}}() {{vendorExtensions.x-go-base-type}} {
 {{#deprecated}}
 // Deprecated
 {{/deprecated}}
-func (o *{{classname}}) Get{{name}}Ok() ({{^isArray}}{{^isFreeFormObject}}*{{/isFreeFormObject}}{{/isArray}}{{vendorExtensions.x-go-base-type}}, bool) {
+func (o *{{classname}}) Get{{name}}Ok() ({{^isArray}}{{^isFreeFormObject}}*{{/isFreeFormObject}}{{/isArray}}{{#isEnum}}{{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}{{/isEnum}}{{^isEnum}}{{vendorExtensions.x-go-base-type}}{{/isEnum}}, bool) {
 	if o == nil{{#isNullable}}{{#vendorExtensions.x-golang-is-container}} || IsNil(o.{{name}}){{/vendorExtensions.x-golang-is-container}}{{/isNullable}} {
 {{^isFreeFormObject}}
 		return nil, false
 	{{/isFreeFormObject}}
 	{{#isFreeFormObject}}
-		return {{vendorExtensions.x-go-base-type}}{}, false
+		return {{#isEnum}}{{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}{{/isEnum}}{{^isEnum}}{{vendorExtensions.x-go-base-type}}{{/isEnum}}{}, false
 	{{/isFreeFormObject}}
 	}
 {{#isNullable}}
@@ -154,7 +205,7 @@ func (o *{{classname}}) Get{{name}}Ok() ({{^isArray}}{{^isFreeFormObject}}*{{/is
 {{#deprecated}}
 // Deprecated
 {{/deprecated}}
-func (o *{{classname}}) Set{{name}}(v {{vendorExtensions.x-go-base-type}}) {
+func (o *{{classname}}) Set{{name}}(v {{#isEnum}}{{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}{{/isEnum}}{{^isEnum}}{{vendorExtensions.x-go-base-type}}{{/isEnum}}) {
 {{#isNullable}}
 {{#vendorExtensions.x-golang-is-container}}
 	o.{{name}} = v
@@ -185,9 +236,9 @@ func (o *{{classname}}) GetDefault{{nameInPascalCase}}() interface{}  {
 {{#deprecated}}
 // Deprecated
 {{/deprecated}}
-func (o *{{classname}}) Get{{name}}() {{vendorExtensions.x-go-base-type}} {
+func (o *{{classname}}) Get{{name}}() {{#isEnum}}{{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}{{/isEnum}}{{^isEnum}}{{vendorExtensions.x-go-base-type}}{{/isEnum}} {
 	if o == nil{{^isNullable}} || IsNil(o.{{name}}){{/isNullable}}{{#isNullable}}{{^vendorExtensions.x-golang-is-container}} || IsNil(o.{{name}}.Get()){{/vendorExtensions.x-golang-is-container}}{{/isNullable}} {
-		var ret {{vendorExtensions.x-go-base-type}}
+		var ret {{#isEnum}}{{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}{{/isEnum}}{{^isEnum}}{{vendorExtensions.x-go-base-type}}{{/isEnum}}
 		return ret
 	}
 {{#isNullable}}
@@ -211,13 +262,13 @@ func (o *{{classname}}) Get{{name}}() {{vendorExtensions.x-go-base-type}} {
 {{#deprecated}}
 // Deprecated
 {{/deprecated}}
-func (o *{{classname}}) Get{{name}}Ok() ({{^isArray}}{{^isFreeFormObject}}*{{/isFreeFormObject}}{{/isArray}}{{vendorExtensions.x-go-base-type}}, bool) {
+func (o *{{classname}}) Get{{name}}Ok() ({{^isArray}}{{^isFreeFormObject}}*{{/isFreeFormObject}}{{/isArray}}{{#isEnum}}{{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}{{/isEnum}}{{^isEnum}}{{vendorExtensions.x-go-base-type}}{{/isEnum}}, bool) {
 	if o == nil{{^isNullable}} || IsNil(o.{{name}}){{/isNullable}}{{#isNullable}}{{#vendorExtensions.x-golang-is-container}} || IsNil(o.{{name}}){{/vendorExtensions.x-golang-is-container}}{{/isNullable}} {
 	{{^isFreeFormObject}}
 		return nil, false
 	{{/isFreeFormObject}}
 	{{#isFreeFormObject}}
-		return {{vendorExtensions.x-go-base-type}}{}, false
+		return {{#isEnum}}{{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}{{/isEnum}}{{^isEnum}}{{vendorExtensions.x-go-base-type}}{{/isEnum}}{}, false
 	{{/isFreeFormObject}}
 	}
 {{#isNullable}}
@@ -246,7 +297,7 @@ func (o *{{classname}}) Has{{name}}() bool {
 {{#deprecated}}
 // Deprecated
 {{/deprecated}}
-func (o *{{classname}}) Set{{name}}(v {{vendorExtensions.x-go-base-type}}) {
+func (o *{{classname}}) Set{{name}}(v {{#isEnum}}{{#enumClassPrefix}}{{classname}}{{/enumClassPrefix}}{{nameInPascalCase}}{{/isEnum}}{{^isEnum}}{{vendorExtensions.x-go-base-type}}{{/isEnum}}) {
 {{#isNullable}}
 {{#vendorExtensions.x-golang-is-container}}
 	o.{{name}} = v

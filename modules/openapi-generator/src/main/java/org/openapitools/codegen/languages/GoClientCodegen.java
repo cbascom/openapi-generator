@@ -488,7 +488,7 @@ public class GoClientCodegen extends AbstractGoCodegen {
                 }
             }
 
-            // additional import for different cases
+            // additional imports for different cases
             boolean addedFmtImport = false;
 
             // oneOf
@@ -518,6 +518,10 @@ public class GoClientCodegen extends AbstractGoCodegen {
                 if (!addedFmtImport) {
                     imports.add(createMapping("import", "fmt"));
                 }
+            }
+
+            if (model.hasEnums) {
+                imports.add(createMapping("import", "errors"));
             }
 
             // additionalProperties: true and parent
